@@ -104,7 +104,7 @@ func CustomDialTLS(srcip, dst_host_port string, timeoutsec int64, tlsConfig *tls
 	}
 	return host, conn, nil
 }
-func (c *Client) InitConn(conn net.Conn) (*Conn, error) {
+func InitConn(conn net.Conn) (*Conn, error) {
 	pCon := &Conn{
 		conn: conn,
 		r:    bufio.NewReader(conn),
