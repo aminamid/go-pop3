@@ -69,6 +69,59 @@ func New(opt Opt) *Client {
 	}
 }
 
+func CustomDial(srcip, dst_host_port string, timeoutsec int64) (string, net.Conn, error) {
+	dialer := net.Dialer{
+		Timeout: time.Duration(timeoutsec) * time.Second,
+	}
+	if len(srcip) > 0 {
+		srcIP := net.ParseIP(srcip)
+		srcAddr := &net.TCPAddr{IP: srcIP}
+		dialer.LocalAddr = srcAddr
+	}
+	host, _, _ := net.SplitHostPort(dst_host_port)
+	conn, err := dialer.Dial("tcp", dst_host_port)
+	if err != nil {
+		return host, nil, err
+	}
+	return host, conn, nil
+}
+func CustomDialTLS(srcip, dst_host_port string, timeoutsec int64, tlsConfig *tls.Config) (string, net.Conn, error) {
+	tlsDialer := tls.Dialer{
+		NetDialer: &net.Dialer{
+			Timeout: time.Duration(timeoutsec) * time.Second,
+		},
+		Config: tlsConfig,
+	}
+	if len(srcip) > 0 {
+		srcIP := net.ParseIP(srcip)
+		srcAddr := &net.TCPAddr{IP: srcIP}
+		tlsDialer.NetDialer.LocalAddr = srcAddr
+	}
+	host, _, _ := net.SplitHostPort(dst_host_port)
+	conn, err := tlsDialer.Dial("tcp", dst_host_port)
+	if err != nil {
+		return host, nil, err
+	}
+	return host, conn, nil
+}
+func (c *Client) InitConn(conn net.Conn) (*Conn, error) {
+	pCon := &Conn{
+		conn: conn,
+		r:    bufio.NewReader(conn),
+		w:    bufio.NewWriter(conn),
+	}
+
+	// Verify the connection by reading the welcome +OK greeting.
+
+	if _, err := pCon.ReadOne(); err != nil {
+		return nil, err
+
+	}
+
+	return pCon, nil
+
+}
+
 // NewConn creates and returns live POP3 server connection.
 func (c *Client) NewConn() (*Conn, error) {
 	var (
